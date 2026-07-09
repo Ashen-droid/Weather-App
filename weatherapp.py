@@ -10,6 +10,7 @@ class WeatherApp(QWidget):
         self.city_input = QLineEdit()
         self.get_weather_button = QPushButton("Get Weather", self)
         self.temperature_label = QLabel("Temperature: ", self)
+        self.emoji_label = QLabel(self)
         self.description_label = QLabel("sunny",self)
         self.initUI()
 
@@ -19,18 +20,21 @@ class WeatherApp(QWidget):
         vbox.addWidget(self.city_input)
         vbox.addWidget(self.get_weather_button)
         vbox.addWidget(self.temperature_label)
+        vbox.addWidget(self.emoji_label)
         vbox.addWidget(self.description_label)
         self.setLayout(vbox)
 
         self.city_label.setAlignment(Qt.AlignCenter)
         self.city_input.setAlignment(Qt.AlignCenter)
         self.temperature_label.setAlignment(Qt.AlignCenter)
+        self.emoji_label.setAlignment(Qt.AlignCenter)
         self.description_label.setAlignment(Qt.AlignCenter)
 
         self.city_label.setObjectName("city_label")
         self.city_input.setObjectName("city_input")
         self.get_weather_button.setObjectName("get_weather_button")
         self.temperature_label.setObjectName("temperature_label")
+        self.emoji_label.setObjectName("emoji_label")
         self.description_label.setObjectName("description_label")
         
         self.get_weather_button.clicked.connect(self.get_weather)
@@ -60,6 +64,10 @@ class WeatherApp(QWidget):
                 font-weight: bold;
                 color: #2196F3;
             }
+            QLabel#emoji_label {
+                font-size: 80px;
+                font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+            }
             QLabel#description_label {
                 font-size: 22px;
                 color: #555;
@@ -67,6 +75,7 @@ class WeatherApp(QWidget):
         """)
 
         self.temperature_label.hide()
+        self.emoji_label.hide()
         self.description_label.hide()
 
     def get_weather(self):
@@ -75,6 +84,7 @@ class WeatherApp(QWidget):
             self.description_label.setText("Please enter a city name.")
             self.description_label.show()
             self.temperature_label.hide()
+            self.emoji_label.hide()
             return
 
         # Fetch coordinates for the city
@@ -88,6 +98,7 @@ class WeatherApp(QWidget):
                 self.description_label.setText(f"City '{city}' not found.")
                 self.description_label.show()
                 self.temperature_label.hide()
+                self.emoji_label.hide()
                 return
 
             lat = geo_data["results"][0]["latitude"]
@@ -106,14 +117,35 @@ class WeatherApp(QWidget):
             weather_desc = self.get_weather_description(weather_code)
 
             self.temperature_label.setText(f"Temperature: {temp}°C")
+            
+            # Determine temperature-related emoji
+            if temp <= 0:
+                temp_emoji = "🥶"
+            elif 0 < temp <= 10:
+                temp_emoji = "🧣"
+            elif 10 < temp <= 20:
+                temp_emoji = "🧥"
+            elif 20 < temp <= 30:
+                temp_emoji = "🌤️"
+            elif 30 < temp <= 40:
+                temp_emoji = "🥵"
+            else:
+                temp_emoji = "🔥"
+                
+            weather_emoji = self.get_weather_emoji(weather_code)
+            
+            self.emoji_label.setText(f"{weather_emoji} {temp_emoji}")
             self.description_label.setText(weather_desc)
+            
             self.temperature_label.show()
+            self.emoji_label.show()
             self.description_label.show()
 
         except requests.exceptions.RequestException:
             self.description_label.setText("Error fetching weather data.")
             self.description_label.show()
             self.temperature_label.hide()
+            self.emoji_label.hide()
 
     def get_weather_description(self, code):
         weather_codes = {
@@ -130,6 +162,22 @@ class WeatherApp(QWidget):
             95: "Thunderstorm", 96: "Thunderstorm with slight hail", 99: "Thunderstorm with heavy hail"
         }
         return weather_codes.get(code, "Unknown weather")
+        
+    def get_weather_emoji(self, weather_code):
+        weather_codes = {
+            0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️",
+            45: "🌫️", 48: "🌫️",
+            51: "🌧️", 53: "🌧️", 55: "🌧️",
+            56: "🌧️", 57: "🌧️",
+            61: "🌧️", 63: "🌧️", 65: "🌧️",
+            66: "🌧️", 67: "🌧️",
+            71: "❄️", 73: "❄️", 75: "❄️",
+            77: "❄️",
+            80: "🌦️", 81: "🌦️", 82: "🌦️",
+            85: "🌨️", 86: "🌨️",
+            95: "⛈️", 96: "⛈️", 99: "⛈️"
+        }
+        return weather_codes.get(weather_code, "🌡️")
 
 
 
