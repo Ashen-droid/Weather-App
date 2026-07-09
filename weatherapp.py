@@ -1,13 +1,33 @@
 import sys
 import requests
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton
 from PyQt5.QtCore import Qt
 
 class WeatherApp(QWidget):
     def __init__(self):
         super().__init__()
         self.city_label = QLabel("Enter city name : ",self)
-        self.city_input = QLineEdit()
+        self.city_input = QComboBox()
+        self.city_input.setEditable(True)
+        sri_lanka_cities = [
+            "Colombo", "Kandy", "Galle", "Ampara", "Anuradhapura", "Badulla", "Mathugama", "Homagama",
+            "Batticaloa", "Chilaw", "Dambulla", "Dehiwala", "Gampaha", "Gampola", 
+            "Hambantota", "Haputale", "Hatton", "Horana", "Ja-Ela", "Jaffna", 
+            "Kalmunai", "Kalutara", "Katunayake", "Kegalle", "Kelaniya", 
+            "Kilinochchi", "Kurunegala", "Maharagama", "Malabe", "Mannar", 
+            "Matale", "Matara", "Minuwangoda", "Monaragala", "Moratuwa", 
+            "Mount Lavinia", "Mullaitivu", "Negombo", "Nugegoda", "Nuwara Eliya", 
+            "Panadura", "Peliyagoda", "Point Pedro", "Polonnaruwa", "Puttalam", 
+            "Ratmalana", "Ratnapura", "Sri Jayawardenepura Kotte", "Tangalle", 
+            "Trincomalee", "Valvettithurai", "Vavuniya", "Wattala", "Weligama",
+            "Akurana", "Balangoda", "Bandarawela", "Beruwala", "Chavakachcheri", 
+            "Embilipitiya", "Eravur", "Kattankudy", "Kinniya", "Kuliyapitiya",
+            "Kadugannawa", "Nawalapitiya", "Piliyandala", "Sigiriya", "Talawakele",
+            "Wattegama", "Arugam Bay", "Ella", "Hikkaduwa", "Mirissa", "Unawatuna",
+            "Pasikudah", "Koggala", "Bentota", "Kataragama", "Mihintale"
+        ]
+        self.city_input.addItems(sorted(sri_lanka_cities))
+        self.city_input.setCurrentText("")
         self.get_weather_button = QPushButton("Get Weather", self)
         self.temperature_label = QLabel("Temperature: ", self)
         self.emoji_label = QLabel(self)
@@ -25,7 +45,7 @@ class WeatherApp(QWidget):
         self.setLayout(vbox)
 
         self.city_label.setAlignment(Qt.AlignCenter)
-        self.city_input.setAlignment(Qt.AlignCenter)
+        self.city_input.lineEdit().setAlignment(Qt.AlignCenter)
         self.temperature_label.setAlignment(Qt.AlignCenter)
         self.emoji_label.setAlignment(Qt.AlignCenter)
         self.description_label.setAlignment(Qt.AlignCenter)
@@ -38,16 +58,23 @@ class WeatherApp(QWidget):
         self.description_label.setObjectName("description_label")
         
         self.get_weather_button.clicked.connect(self.get_weather)
+        self.city_input.lineEdit().returnPressed.connect(self.get_weather_button.click)
         
         # Adding some basic styling matching the object names
-        self.setStyleSheet("""
+        self.setObjectName("WeatherApp")
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.base_stylesheet = """
+            QWidget#WeatherApp {
+                background-color: #f0f0f0;
+            }
             QLabel#city_label {
                 font-size: 20px;
                 font-weight: bold;
             }
-            QLineEdit#city_input {
+            QComboBox#city_input {
                 font-size: 20px;
                 padding: 5px;
+                background-color: white;
             }
             QPushButton#get_weather_button {
                 font-size: 18px;
@@ -72,14 +99,15 @@ class WeatherApp(QWidget):
                 font-size: 22px;
                 color: #555;
             }
-        """)
+        """
+        self.setStyleSheet(self.base_stylesheet)
 
         self.temperature_label.hide()
         self.emoji_label.hide()
         self.description_label.hide()
 
     def get_weather(self):
-        city = self.city_input.text().strip()
+        city = self.city_input.currentText().strip()
         if not city:
             self.description_label.setText("Please enter a city name.")
             self.description_label.show()
@@ -114,23 +142,39 @@ class WeatherApp(QWidget):
             temp = current_weather.get("temperature")
             weather_code = current_weather.get("weathercode", 0)
 
+            if temp is None:
+                self.description_label.setText("Weather data currently unavailable.")
+                self.description_label.show()
+                self.temperature_label.hide()
+                self.emoji_label.hide()
+                return
+
             weather_desc = self.get_weather_description(weather_code)
 
             self.temperature_label.setText(f"Temperature: {temp}°C")
             
-            # Determine temperature-related emoji
+            # Determine temperature-related emoji and background color
             if temp <= 0:
                 temp_emoji = "🥶"
+                bg_color = "#81d4fa"  # Freezing blue
             elif 0 < temp <= 10:
                 temp_emoji = "🧣"
+                bg_color = "#b3e5fc"  # Cold blue
             elif 10 < temp <= 20:
                 temp_emoji = "🧥"
+                bg_color = "#e1f5fe"  # Cool blue
             elif 20 < temp <= 30:
                 temp_emoji = "🌤️"
+                bg_color = "#fff9c4"  # Warm yellow
             elif 30 < temp <= 40:
                 temp_emoji = "🥵"
+                bg_color = "#ffcc80"  # Hot orange
             else:
                 temp_emoji = "🔥"
+                bg_color = "#ef9a9a"  # Scorching red
+                
+            updated_stylesheet = self.base_stylesheet.replace("background-color: #f0f0f0;", f"background-color: {bg_color};")
+            self.setStyleSheet(updated_stylesheet)
                 
             weather_emoji = self.get_weather_emoji(weather_code)
             
@@ -141,7 +185,7 @@ class WeatherApp(QWidget):
             self.emoji_label.show()
             self.description_label.show()
 
-        except requests.exceptions.RequestException:
+        except Exception:
             self.description_label.setText("Error fetching weather data.")
             self.description_label.show()
             self.temperature_label.hide()
